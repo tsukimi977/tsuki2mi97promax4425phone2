@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Book · Tsukimi</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:    #0a0a0a;
+      --mute:   #8a8a8e;
+      --line:   rgba(10,10,10,0.07);
+      --paper:  #fafaf7;
+      --paper-2:#f1f0ea;
+      --lime:   #d4ff4d;
+      --coral:  #ff6b6b;
+      --blue:   #5b7cfa;
+      --purple: #a78bfa;
+      --amber:  #f59e0b;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    body{font-family:'Geist',sans-serif;background:var(--paper);color:var(--ink);height:100vh;overflow:hidden;}
+
+    /* ══ LAYOUT ══ */
+    .app-layout{display:flex;height:100vh;}
+
+    /* ══ RAIL ══ */
+    .side-rail{width:62px;height:100%;display:flex;flex-direction:column;align-items:center;padding:18px 0 20px;border-right:1px solid var(--line);flex-shrink:0;background:var(--paper);position:relative;z-index:10;gap:4px;}
+    .rail-tag-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px;}
+    .rail-thread{width:1px;height:14px;background:var(--line);}
+    .rail-tag-body{padding:4px 7px;background:var(--ink);border-radius:4px;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);font-family:'Geist Mono',monospace;font-size:7px;font-weight:600;letter-spacing:0.12em;color:white;line-height:1;}
+    .side-tab{width:44px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px 8px;border-radius:12px;transition:background .2s,transform .18s cubic-bezier(.175,.885,.32,1.275);user-select:none;}
+    .side-tab:active{transform:scale(.91);}
+    .side-tab.active{background:var(--ink);}
+    .side-tab.active .tab-icon-wrap{color:white;}
+    .side-tab.active .tab-short{color:rgba(255,255,255,.65);}
+    .side-tab.active .tab-dot{display:none;}
+    .tab-icon-wrap{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mute);transition:color .2s;}
+    .tab-short{font-family:'Geist Mono',monospace;font-size:7px;color:var(--mute);letter-spacing:.02em;text-align:center;line-height:1.2;transition:color .2s;}
+    .tab-dot{width:4px;height:4px;border-radius:50%;margin-top:1px;}
+    [data-section="pre"]   .tab-dot{background:var(--lime);}
+    [data-section="mid"]   .tab-dot{background:var(--blue);}
+    [data-section="post"]  .tab-dot{background:var(--coral);}
+    [data-section="global"].tab-dot{background:var(--purple);}
+    [data-section="local"] .tab-dot{background:var(--amber);}
+    .rail-divider{width:26px;height:1px;background:var(--line);margin:4px 0;}
+
+    /* ══ MAIN ══ */
+    .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+    .section-header{padding:16px 18px 13px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);flex-shrink:0;}
+    .section-eyebrow{font-family:'Geist Mono',monospace;font-size:8px;color:var(--mute);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;}
+    .section-title{font-family:'Fraunces',serif;font-style:italic;font-size:24px;line-height:1;display:flex;align-items:center;gap:9px;}
+    .title-accent{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-bottom:1px;}
+    .section-count{font-family:'Geist Mono',monospace;font-size:9px;color:var(--mute);margin-top:5px;}
+    .new-btn{padding:7px 13px;border-radius:100px;border:1px solid var(--line);background:white;font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s;flex-shrink:0;}
+    .new-btn:active{transform:scale(.94);}
+    .sec-pre    .new-btn:hover{background:rgba(212,255,77,.1); border-color:rgba(212,255,77,.5);}
+    .sec-mid    .new-btn:hover{background:rgba(91,124,250,.06);border-color:rgba(91,124,250,.3);}
+    .sec-post   .new-btn:hover{background:rgba(255,107,107,.06);border-color:rgba(255,107,107,.3);}
+    .sec-global .new-btn:hover{background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.3);}
+    .sec-local  .new-btn:hover{background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.3);}
+
+    /* ══ CATEGORY TABS ══ */
+    .cat-tabs-row{display:flex;align-items:center;gap:5px;padding:9px 14px;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+    .cat-tabs-row::-webkit-scrollbar{display:none;}
+    .cat-tab{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-family:'Geist Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;white-space:nowrap;cursor:pointer;user-select:none;border:1px solid var(--line);background:white;color:var(--mute);transition:all .15s;flex-shrink:0;}
+    .cat-tab:active{transform:scale(.93);}
+    .cat-tab.all-tab.active{background:var(--ink);color:white;border-color:var(--ink);}
+    .cat-tab.add-tab{background:transparent;border-style:dashed;font-size:10px;}
+    .cat-tab-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+
+    /* Category add bar */
+    .cat-add-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);flex-shrink:0;background:rgba(255,255,255,.7);}
+    .cat-add-input{flex:1;padding:7px 11px;border:1px solid var(--line);border-radius:8px;font-family:'Geist Mono',monospace;font-size:11px;outline:none;background:white;color:var(--ink);}
+    .cat-add-input:focus{border-color:rgba(10,10,10,.25);}
+    .cat-confirm-btn{padding:6px 12px;border-radius:8px;background:var(--ink);color:white;font-family:'Geist Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;user-select:none;}
+    .cat-cancel-btn {padding:6px 10px;border-radius:8px;background:var(--paper-2);color:var(--mute);font-family:'Geist Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;user-select:none;}
+
+    /* ══ ENTRIES SCROLL ══ */
+    .entries-scroll{flex:1;overflow-y:auto;padding:14px 14px 80px;scrollbar-width:none;}
+    .entries-scroll::-webkit-scrollbar{display:none;}
+
+    /* ══ WB CARDS ══ */
+    .wb-card{background:white;border:1px solid var(--line);border-radius:14px;padding:13px 14px 13px 12px;margin-bottom:10px;position:relative;transition:box-shadow .2s;overflow:hidden;}
+    .wb-card::before{content:'';position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 2px 2px 0;}
+    .sec-pre    .wb-card::before{background:var(--lime);}
+    .sec-mid    .wb-card::before{background:var(--blue);}
+    .sec-post   .wb-card::before{background:var(--coral);}
+    .sec-global .wb-card::before{background:var(--purple);}
+    .sec-local  .wb-card::before{background:var(--amber);}
+    .wb-card.disabled{opacity:.42;filter:grayscale(1);}
+
+    /* Right color indicator (category) */
+    .cat-indicator{position:absolute;right:0;top:11px;bottom:11px;width:3px;border-radius:2px 0 0 2px;}
+
+    .wb-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;}
+    .wb-card-name{font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* Badges row */
+    .wb-badges-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+    .cat-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-family:'Geist Mono',monospace;font-size:9px;font-weight:600;}
+    .cat-badge-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+    .kw-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;background:rgba(91,124,250,.08);border:1px solid rgba(91,124,250,.2);color:var(--blue);font-family:'Geist Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.04em;}
+
+    /* Keyword tags */
+    .wb-keys{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+    .wb-key-tag{background:rgba(91,124,250,.07);border:1px solid rgba(91,124,250,.18);color:var(--blue);border-radius:20px;padding:2px 8px;font-family:'Geist Mono',monospace;font-size:9px;}
+    .wb-key-tag.empty{background:rgba(138,138,142,.07);border-color:rgba(138,138,142,.18);color:var(--mute);}
+
+    /* Bound chars (local section) */
+    .bound-chars{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+    .bound-char-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 4px;border-radius:20px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.22);font-size:11px;}
+    .bound-char-avatar{width:16px;height:16px;border-radius:50%;object-fit:cover;background:var(--paper-2);flex-shrink:0;}
+    .no-bound{font-family:'Geist Mono',monospace;font-size:9px;color:var(--mute);}
+
+    .wb-preview{font-size:11px;color:var(--mute);line-height:1.5;max-height:32px;overflow:hidden;margin-bottom:10px;}
+
+    /* Card actions + move buttons */
+    .wb-card-actions{display:flex;align-items:center;gap:14px;padding-top:8px;border-top:1px solid var(--line);}
+    .wb-action-btn{font-family:'Geist Mono',monospace;font-size:10px;color:var(--blue);cursor:pointer;user-select:none;transition:opacity .15s;white-space:nowrap;}
+    .wb-action-btn:active{opacity:.5;}
+    .wb-action-btn.neutral{color:var(--ink);}
+    .wb-action-btn.danger {color:var(--coral);}
+    .actions-spacer{flex:1;}
+    .move-btns{display:flex;gap:4px;flex-shrink:0;}
+    .move-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:6px;font-size:9px;color:var(--mute);cursor:pointer;user-select:none;transition:all .12s;}
+    .move-btn:not(.dis):hover{background:var(--ink);color:white;border-color:var(--ink);}
+    .move-btn:not(.dis):active{transform:scale(.86);}
+    .move-btn.dis{opacity:.22;cursor:default;pointer-events:none;}
+
+    /* Toggle */
+    .toggle-dot{width:34px;height:18px;background:var(--paper-2);border-radius:20px;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+    .toggle-dot::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:white;transition:left .3s;box-shadow:0 2px 4px rgba(0,0,0,.1);}
+    .toggle-dot.on{background:var(--lime);}
+    .toggle-dot.on::after{left:19px;}
+
+    /* Empty */
+    .wb-empty{text-align:center;padding:36px 20px;font-family:'Geist Mono',monospace;font-size:10px;color:var(--mute);line-height:1.9;border:1px dashed var(--line);border-radius:14px;}
+    .wb-empty-icon{font-size:28px;margin-bottom:10px;opacity:.18;}
+
+    /* Toast */
+    .status-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;padding:7px 16px;border-radius:100px;font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em;pointer-events:none;opacity:0;transition:opacity .2s;z-index:2000;white-space:nowrap;}
+    .status-toast.show{opacity:1;}
+
+    /* ══ EDITOR PANEL ══ */
+    .full-panel{position:fixed;inset:0;background:var(--paper);z-index:1000;transform:translateY(100%);transition:transform .42s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;padding:20px;}
+    .full-panel.open{transform:translateY(0);}
+    .panel-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-shrink:0;}
+    .btn-back{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;background:white;transition:transform .15s;}
+    .btn-back:active{transform:scale(.88);}
+    .panel-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:100px;font-family:'Geist Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;border:1px solid var(--line);background:white;}
+    .pill-dot{width:5px;height:5px;border-radius:50%;}
+    .mini-btn{padding:6px 14px;border-radius:100px;font-family:'Geist Mono',monospace;font-size:10px;cursor:pointer;border:1px solid var(--line);background:white;white-space:nowrap;transition:background .15s,transform .15s;}
+    .mini-btn:active{transform:scale(.94);}
+    .mini-btn-primary{background:var(--ink);color:white;border-color:var(--ink);}
+
+    .field-label{font-family:'Geist Mono',monospace;font-size:9px;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .field-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+    .input-plain{width:100%;border:none;background:transparent;font-family:'Fraunces',serif;font-style:italic;font-size:22px;margin-bottom:20px;outline:none;color:var(--ink);}
+    .input-plain::placeholder{color:rgba(10,10,10,.2);}
+    .input-area{width:100%;min-height:90px;border:1px dashed var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.65;margin-bottom:25px;outline:none;background:rgba(255,255,255,.5);font-family:'Geist',sans-serif;color:var(--ink);resize:vertical;}
+    .input-area:focus{border-color:rgba(10,10,10,.2);}
+    .url-input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:'Geist Mono',monospace;font-size:11px;outline:none;background:white;color:var(--ink);transition:border-color .15s;}
+    .url-input:focus{border-color:rgba(10,10,10,.2);}
+
+    .panel-scroll{flex:1;overflow-y:auto;scrollbar-width:none;}
+    .panel-scroll::-webkit-scrollbar{display:none;}
+
+    /* Editor category picker */
+    .editor-cat-picker{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:22px;}
+    .editor-cat-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-family:'Geist Mono',monospace;font-size:9px;font-weight:600;border:1px solid var(--line);background:white;color:var(--mute);cursor:pointer;user-select:none;transition:all .12s;}
+    .editor-cat-pill:active{transform:scale(.93);}
+    .editor-cat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+
+    /* Char picker */
+    .char-picker-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+    .char-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px 7px 7px;border-radius:12px;border:1px solid var(--line);background:white;cursor:pointer;user-select:none;transition:all .15s;font-size:12px;}
+    .char-chip:active{transform:scale(.95);}
+    .char-chip.selected{background:var(--ink);color:white;border-color:var(--ink);}
+    .char-chip-avatar{width:22px;height:22px;border-radius:50%;object-fit:cover;background:var(--paper-2);flex-shrink:0;}
+    .char-check{display:none;font-size:11px;font-weight:700;}
+    .char-chip.selected .char-check{display:inline;}
+    .no-chars-hint{font-family:'Geist Mono',monospace;font-size:10px;color:var(--mute);padding:14px;border:1px dashed var(--line);border-radius:10px;line-height:1.7;margin-bottom:22px;}
+
+    .hidden{display:none !important;}
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ════ RAIL ════ -->
+  <div class="side-rail">
+    <div class="rail-tag-wrap">
+      <div class="rail-thread"></div>
+      <div class="rail-tag-body">WB</div>
+    </div>
+    <div class="side-tab active" data-section="pre"    onclick="switchSection('pre')">
+      <div class="tab-icon-wrap"><i class="fa-solid fa-angles-up"></i></div>
+      <div class="tab-short">头部</div><div class="tab-dot"></div>
+    </div>
+    <div class="side-tab"        data-section="mid"    onclick="switchSection('mid')">
+      <div class="tab-icon-wrap"><i class="fa-solid fa-grip-lines"></i></div>
+      <div class="tab-short">中部</div><div class="tab-dot"></div>
+    </div>
+    <div class="side-tab"        data-section="post"   onclick="switchSection('post')">
+      <div class="tab-icon-wrap"><i class="fa-solid fa-angles-down"></i></div>
+      <div class="tab-short">尾部</div><div class="tab-dot"></div>
+    </div>
+    <div class="rail-divider"></div>
+    <div class="side-tab"        data-section="global" onclick="switchSection('global')">
+      <div class="tab-icon-wrap"><i class="fa-solid fa-earth-asia"></i></div>
+      <div class="tab-short">全局</div><div class="tab-dot"></div>
+    </div>
+    <div class="side-tab"        data-section="local"  onclick="switchSection('local')">
+      <div class="tab-icon-wrap"><i class="fa-solid fa-user-tag"></i></div>
+      <div class="tab-short">局部</div><div class="tab-dot"></div>
+    </div>
+  </div>
+
+  <!-- ════ MAIN ════ -->
+  <div class="main-area sec-pre" id="mainArea">
+
+    <div class="section-header">
+      <div>
+        <div class="section-eyebrow" id="sectionEyebrow">POSITION · TOP</div>
+        <div class="section-title">
+          <span class="title-accent" id="titleAccent" style="background:var(--lime)"></span>
+          <span id="sectionTitleText">头部世界书</span>
+        </div>
+        <div class="section-count" id="sectionCount">0 entries</div>
+      </div>
+      <button class="new-btn" onclick="addEntry()">
+        <i class="fa-solid fa-plus" style="font-size:8px"></i> NEW SHARD
+      </button>
+    </div>
+
+    <!-- Category tabs (pre/mid/post/global only) -->
+    <div class="cat-tabs-row hidden" id="catTabsRow"></div>
+    <div class="cat-add-bar hidden" id="catAddBar">
+      <input type="text" class="cat-add-input" id="catAddInput" placeholder="新分类名称…"
+             onkeydown="if(event.key==='Enter')confirmAddCat()" />
+      <div class="cat-confirm-btn" onclick="confirmAddCat()">确认</div>
+      <div class="cat-cancel-btn"  onclick="hideCatAddBar()">取消</div>
+    </div>
+
+    <div class="entries-scroll"><div id="entriesList"></div></div>
+  </div>
+</div>
+
+<!-- ════ EDITOR ════ -->
+<div class="full-panel" id="editorPanel">
+  <div class="panel-top">
+    <div class="btn-back" onclick="closeEditor()">
+      <i class="fa-solid fa-chevron-down" style="font-size:11px;color:var(--mute)"></i>
+    </div>
+    <div class="panel-pill">
+      <div class="pill-dot" id="editorPillDot" style="background:var(--lime)"></div>
+      <span id="editorPillLabel">头部世界书</span>
+    </div>
+    <div class="mini-btn mini-btn-primary" onclick="saveEntry()">DONE</div>
+  </div>
+
+  <div class="panel-scroll">
+    <div class="field-label">Entry Title</div>
+    <input type="text" class="input-plain" id="editTitle" placeholder="Untitled Shard…" />
+
+    <div style="display:flex;gap:18px;margin-bottom:22px;align-items:flex-end">
+      <div style="flex:1">
+        <div class="field-label">Priority</div>
+        <input type="number" class="url-input" id="editPriority" value="100" min="1" max="999" />
+      </div>
+      <div>
+        <div class="field-label">Enabled</div>
+        <div class="toggle-dot on" id="editToggle" onclick="this.classList.toggle('on')" style="margin-top:5px"></div>
+      </div>
+    </div>
+
+    <!-- Category picker (pre/mid/post/global) -->
+    <div id="editorCatSection" class="hidden">
+      <div class="field-label">Category</div>
+      <div class="editor-cat-picker" id="editorCatPicker"></div>
+    </div>
+
+    <!-- Keywords -->
+    <div class="field-label">Keywords</div>
+    <input type="text" class="url-input" id="editKeys"
+           placeholder="keyword1, keyword2, 关键词3"
+           style="margin-bottom:22px" />
+
+    <!-- Char picker (local section only) -->
+    <div id="charPickerSection" class="hidden">
+      <div class="field-label">绑定角色</div>
+      <div class="char-picker-list" id="charPickerList"></div>
+    </div>
+
+    <div class="field-label">Content</div>
+    <textarea class="input-area" id="editContent" style="min-height:200px"
+              placeholder="在此输入世界书内容…"></textarea>
+  </div>
+</div>
+
+<div class="status-toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   DB SCHEMA  —  IndexedDB: "tsukiphonepromax"  (v2)
+   ═══════════════════════════════════════════════════════════════════
+   ├─ objectStore: "worldbook"   (out-of-line keys)
+   │   ├─ "wb_pre"          → Entry[]    头部世界书
+   │   ├─ "wb_mid"          → Entry[]    中部世界书
+   │   ├─ "wb_post"         → Entry[]    尾部世界书
+   │   ├─ "wb_global"       → Entry[]    全局世界书
+   │   ├─ "wb_local"        → Entry[]    局部世界书
+   │   └─ "wb_categories"   → string[]   自定义分类列表（不含默认的Online/Offline）
+   ├─ objectStore: "chars"   (keyPath:"id")   ← read-only by worldbook.html
+   │   └─ { id, name, avatar, worldbook, ... }
+   └─ objectStore: "users"   (keyPath:"id")   ← reserved
+       └─ { id, name, avatar, persona, ... }
+
+   Entry (pre / mid / post / global) {
+     id        : string
+     title     : string
+     content   : string
+     keys      : string     comma-sep trigger keywords
+     priority  : number
+     enabled   : boolean
+     isKeyword : boolean    true when keys !== ''
+     category  : string     '' | 'Online' | 'Offline' | <custom>
+   }
+
+   Entry (local) {
+     id        : string
+     title     : string
+     content   : string
+     keys      : string
+     priority  : number
+     enabled   : boolean
+     isKeyword : boolean
+     category  : string     (not displayed, kept for schema consistency)
+     charIds   : string[]   bound char IDs
+   }
+   ═══════════════════════════════════════════════════════════════════ */
+
+  const IDB_NAME  = 'tsukiphonepromax';
+  const IDB_VER   = 2;
+  const WB_STORE  = 'worldbook';
+
+  const SEC_KEY = {
+    pre:'wb_pre', mid:'wb_mid', post:'wb_post',
+    global:'wb_global', local:'wb_local',
+  };
+
+  const SECTIONS = {
+    pre:    { label:'头部世界书',  eyebrow:'POSITION · TOP',    color:'var(--lime)',   hasCats:true,  hasChars:false },
+    mid:    { label:'中部世界书',  eyebrow:'POSITION · MIDDLE', color:'var(--blue)',   hasCats:true,  hasChars:false },
+    post:   { label:'尾部世界书',  eyebrow:'POSITION · BOTTOM', color:'var(--coral)',  hasCats:true,  hasChars:false },
+    global: { label:'全局世界书',  eyebrow:'SCOPE · GLOBAL',    color:'var(--purple)', hasCats:true,  hasChars:false },
+    local:  { label:'局部世界书',  eyebrow:'SCOPE · LOCAL',     color:'var(--amber)',  hasCats:false, hasChars:true  },
+  };
+
+  const DEFAULT_CATS = ['Online','Offline'];
+  const CAT_DEFAULTS_COLOR = { Online:'#22c55e', Offline:'#6b7280' };
+  const CAT_PALETTE = ['#5b7cfa','#f59e0b','#a78bfa','#ff6b6b','#06b6d4','#ec4899','#84cc16','#14b8a6'];
+
+  function getCatColor(name, customCats=[]) {
+    if (CAT_DEFAULTS_COLOR[name]) return CAT_DEFAULTS_COLOR[name];
+    const i = customCats.indexOf(name);
+    return CAT_PALETTE[i >= 0 ? i % CAT_PALETTE.length : 0];
+  }
+
+  /* ── State ────────────────────────────────────────── */
+  let currentSection  = 'pre';
+  let currentCategory = '所有';
+  let editingIndex    = null;
+  let editingCategory = '';
+  let editingCharIds  = [];
+  let _idb            = null;
+
+  /* ══ IDB ════════════════════════════════════════════ */
+  function openDb() {
+    if (_idb) return Promise.resolve(_idb);
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VER);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(WB_STORE))
+          db.createObjectStore(WB_STORE);
+        if (!db.objectStoreNames.contains('chars'))
+          db.createObjectStore('chars', { keyPath:'id' });
+        if (!db.objectStoreNames.contains('users'))
+          db.createObjectStore('users', { keyPath:'id' });
+      };
+      req.onsuccess = e => { _idb = e.target.result; resolve(_idb); };
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  async function loadSection(sec) {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(WB_STORE, 'readonly');
+      const req = tx.objectStore(WB_STORE).get(SEC_KEY[sec]);
+      req.onsuccess = e => resolve(Array.isArray(e.target.result) ? e.target.result : []);
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  async function saveSection(sec, entries) {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(WB_STORE, 'readwrite');
+      const req = tx.objectStore(WB_STORE).put(entries, SEC_KEY[sec]);
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  async function loadCategories() {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(WB_STORE, 'readonly');
+      const req = tx.objectStore(WB_STORE).get('wb_categories');
+      req.onsuccess = e => resolve(Array.isArray(e.target.result) ? e.target.result : []);
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  async function saveCategories(cats) {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(WB_STORE, 'readwrite');
+      const req = tx.objectStore(WB_STORE).put(cats, 'wb_categories');
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  async function loadChars() {
+    try {
+      const db = await openDb();
+      if (!db.objectStoreNames.contains('chars')) return [];
+      return new Promise(resolve => {
+        try {
+          const tx  = db.transaction('chars', 'readonly');
+          const req = tx.objectStore('chars').getAll();
+          req.onsuccess = e => resolve(e.target.result || []);
+          req.onerror   = () => resolve([]);
+        } catch { resolve([]); }
+      });
+    } catch { return []; }
+  }
+
+  /* ── Helpers ──────────────────────────────────────── */
+  function uid()  { return 'e' + Date.now() + Math.random().toString(36).slice(2,5); }
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function showToast(msg, ms=1500) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  /* ══ SECTION SWITCH ══════════════════════════════════ */
+  async function switchSection(sec) {
+    currentSection  = sec;
+    currentCategory = '所有';
+    const s = SECTIONS[sec];
+
+    document.querySelectorAll('.side-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.section === sec)
+    );
+    document.getElementById('mainArea').className           = `main-area sec-${sec}`;
+    document.getElementById('sectionEyebrow').textContent   = s.eyebrow;
+    document.getElementById('sectionTitleText').textContent = s.label;
+    document.getElementById('titleAccent').style.background = s.color;
+
+    // Cat tabs visibility
+    document.getElementById('catTabsRow').classList.toggle('hidden', !s.hasCats);
+    hideCatAddBar();
+
+    if (s.hasCats) await renderCategoryTabs();
+    await renderList();
+  }
+
+  /* ══ CATEGORY TABS ═══════════════════════════════════ */
+  async function renderCategoryTabs() {
+    const customCats = await loadCategories();
+    const allCats    = [...DEFAULT_CATS, ...customCats];
+    const row        = document.getElementById('catTabsRow');
+
+    let html = `<div class="cat-tab all-tab ${currentCategory==='所有'?'active':''}"
+                     onclick="switchCategory('所有')">所有</div>`;
+
+    allCats.forEach(cat => {
+      const color = getCatColor(cat, customCats);
+      const isSel = currentCategory === cat;
+      const style = isSel
+        ? `background:${color}18;color:${color};border-color:${color}`
+        : `color:var(--mute)`;
+      html += `<div class="cat-tab" style="${style}" onclick="switchCategory('${esc(cat)}')">
+                 <span class="cat-tab-dot" style="background:${color}"></span>${esc(cat)}
+               </div>`;
+    });
+
+    html += `<div class="cat-tab add-tab" onclick="showCatAddBar()">
+               <i class="fa-solid fa-plus" style="font-size:8px"></i>
+             </div>`;
+
+    row.innerHTML = html;
+  }
+
+  async function switchCategory(cat) {
+    currentCategory = cat;
+    await renderCategoryTabs();
+    await renderList();
+  }
+
+  function showCatAddBar() {
+    document.getElementById('catAddBar').classList.remove('hidden');
+    document.getElementById('catAddInput').value = '';
+    setTimeout(() => document.getElementById('catAddInput').focus(), 80);
+  }
+  function hideCatAddBar() {
+    document.getElementById('catAddBar').classList.add('hidden');
+  }
+
+  async function confirmAddCat() {
+    const input = document.getElementById('catAddInput');
+    const name  = input.value.trim();
+    if (!name) return;
+    if ([...DEFAULT_CATS].map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
+      showToast('默认分类已存在'); return;
+    }
+    const cats = await loadCategories();
+    if (cats.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
+      showToast('该分类已存在'); return;
+    }
+    cats.push(name);
+    await saveCategories(cats);
+    hideCatAddBar();
+    await renderCategoryTabs();
+  }
+
+  /* ══ RENDER LIST ═════════════════════════════════════ */
+  async function renderList() {
+    const list       = await loadSection(currentSection);
+    const sec        = SECTIONS[currentSection];
+    const customCats = sec.hasCats  ? await loadCategories() : [];
+    const chars      = sec.hasChars ? await loadChars()      : [];
+
+    // Filter
+    const filtered = list
+      .map((item, origIdx) => ({ item, origIdx }))
+      .filter(({ item }) =>
+        !sec.hasCats ||
+        currentCategory === '所有' ||
+        (item.category || '') === currentCategory
+      );
+
+    const n = filtered.length;
+    document.getElementById('sectionCount').textContent =
+      `${list.length} total · ${n} shown`;
+
+    const box = document.getElementById('entriesList');
+    box.innerHTML = '';
+
+    if (n === 0) {
+      box.innerHTML = `
+        <div class="wb-empty">
+          <div class="wb-empty-icon">✦</div>
+          ${list.length === 0 ? '此分区暂无条目<br/>点击 + NEW SHARD 新建' : '此分类下暂无条目'}
+        </div>`;
+      return;
+    }
+
+    filtered.forEach(({ item, origIdx }) => {
+      const upDis  = isUpDisabled(list, origIdx);
+      const downDis = isDownDisabled(list, origIdx);
+      box.appendChild(buildCard(item, origIdx, list.length, upDis, downDis, customCats, chars));
+    });
+  }
+
+  /* ── Disabled helpers ─────────────────────────────── */
+  function isUpDisabled(list, origIdx) {
+    const sec = SECTIONS[currentSection];
+    if (!sec.hasCats || currentCategory === '所有') return origIdx === 0;
+    const cat = list[origIdx]?.category || '';
+    for (let j = origIdx - 1; j >= 0; j--)
+      if ((list[j]?.category || '') === cat) return false;
+    return true;
+  }
+  function isDownDisabled(list, origIdx) {
+    const sec = SECTIONS[currentSection];
+    if (!sec.hasCats || currentCategory === '所有') return origIdx === list.length - 1;
+    const cat = list[origIdx]?.category || '';
+    for (let j = origIdx + 1; j < list.length; j++)
+      if ((list[j]?.category || '') === cat) return false;
+    return true;
+  }
+
+  /* ══ BUILD CARD ══════════════════════════════════════ */
+  function buildCard(item, origIdx, total, upDis, downDis, customCats, chars) {
+    const card = document.createElement('div');
+    card.className = `wb-card ${item.enabled ? '' : 'disabled'}`;
+
+    /* Category indicator (right stripe) */
+    const cat      = item.category || '';
+    const catColor = cat ? getCatColor(cat, customCats) : null;
+    const catStripe = catColor
+      ? `<div class="cat-indicator" style="background:${catColor}"></div>`
+      : '';
+
+    /* Badges */
+    const catBadge = cat && catColor
+      ? `<div class="cat-badge" style="background:${catColor}14;border:1px solid ${catColor}30;color:${catColor}">
+           <span class="cat-badge-dot" style="background:${catColor}"></span>${esc(cat)}
+         </div>`
+      : '';
+    const kwBadge = item.isKeyword
+      ? `<div class="kw-badge"><i class="fa-solid fa-key" style="font-size:7px"></i>KEYWORD</div>`
+      : '';
+    const badgesRow = (catBadge || kwBadge)
+      ? `<div class="wb-badges-row">${catBadge}${kwBadge}</div>` : '';
+
+    /* Keyword tags */
+    const keys = (item.keys||'').split(/[,，]/).map(k=>k.trim()).filter(Boolean);
+    const keysHtml = keys.length
+      ? `<div class="wb-keys">${keys.map(k=>`<span class="wb-key-tag">${esc(k)}</span>`).join('')}</div>`
+      : '';
+
+    /* Bound chars (local section) */
+    let boundHtml = '';
+    if (SECTIONS[currentSection].hasChars) {
+      const ids = Array.isArray(item.charIds) ? item.charIds : [];
+      if (ids.length > 0) {
+        const chips = ids.map(cid => {
+          const c = chars.find(x => x.id === cid);
+          if (!c) return '';
+          return `<span class="bound-char-chip">
+            <img class="bound-char-avatar" src="${esc(c.avatar||'')}"
+                 onerror="this.src='';this.style.background='var(--paper-2)'" />
+            ${c.name ? esc(c.name) : '<em>Unnamed</em>'}
+          </span>`;
+        }).join('');
+        boundHtml = `<div class="bound-chars">${chips}</div>`;
+      } else {
+        boundHtml = `<div class="bound-chars"><span class="no-bound">未绑定角色</span></div>`;
+      }
+    }
+
+    card.innerHTML = `
+      ${catStripe}
+      <div class="wb-card-top">
+        <div class="wb-card-name">${item.title ? esc(item.title) : '<em style="opacity:.35">Untitled Shard</em>'}</div>
+        <div class="toggle-dot ${item.enabled?'on':''}"
+             onclick="event.stopPropagation();toggleItem(${origIdx})"></div>
+      </div>
+      ${badgesRow}
+      ${keysHtml}
+      ${boundHtml}
+      <div class="wb-preview">${item.content ? esc(item.content) : '<em style="opacity:.45">Empty…</em>'}</div>
+      <div class="wb-card-actions">
+        <div class="wb-action-btn"        onclick="openEditor(${origIdx})">EDIT</div>
+        <div class="wb-action-btn neutral" onclick="duplicateItem(${origIdx})">DUPLICATE</div>
+        <div class="wb-action-btn danger"  onclick="deleteItem(${origIdx})">DELETE</div>
+        <div class="actions-spacer"></div>
+        <div class="move-btns">
+          <div class="move-btn ${upDis?'dis':''}" onclick="moveItem(${origIdx},-1)" title="上移">
+            <i class="fa-solid fa-chevron-up"></i>
+          </div>
+          <div class="move-btn ${downDis?'dis':''}" onclick="moveItem(${origIdx},1)" title="下移">
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+      </div>`;
+    return card;
+  }
+
+  /* ══ ENTRY ACTIONS ═══════════════════════════════════ */
+  async function addEntry() {
+    const sec  = SECTIONS[currentSection];
+    const list = await loadSection(currentSection);
+    const item = {
+      id:        uid(),
+      title:     '',
+      content:   '',
+      keys:      '',
+      priority:  100,
+      enabled:   true,
+      isKeyword: false,
+      category:  sec.hasCats && currentCategory !== '所有' ? currentCategory : '',
+      charIds:   [],
+    };
+    list.push(item);
+    await saveSection(currentSection, list);
+    await renderList();
+    openEditor(list.length - 1);
+  }
+
+  async function moveItem(origIdx, dir) {
+    const list = await loadSection(currentSection);
+    const sec  = SECTIONS[currentSection];
+    let targetIdx;
+
+    if (!sec.hasCats || currentCategory === '所有') {
+      targetIdx = origIdx + dir;
+    } else {
+      const cat = list[origIdx]?.category || '';
+      targetIdx = origIdx + dir;
+      while (targetIdx >= 0 && targetIdx < list.length) {
+        if ((list[targetIdx]?.category || '') === cat) break;
+        targetIdx += dir;
+      }
+    }
+
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    [list[origIdx], list[targetIdx]] = [list[targetIdx], list[origIdx]];
+    await saveSection(currentSection, list);
+    renderList();
+  }
+
+  async function toggleItem(origIdx) {
+    const list = await loadSection(currentSection);
+    list[origIdx].enabled = !list[origIdx].enabled;
+    await saveSection(currentSection, list);
+    renderList();
+  }
+
+  async function duplicateItem(origIdx) {
+    const list = await loadSection(currentSection);
+    const copy = { ...list[origIdx], id: uid(), title: (list[origIdx].title||'Untitled') + ' (copy)' };
+    list.splice(origIdx + 1, 0, copy);
+    await saveSection(currentSection, list);
+    await renderList();
+    showToast('已复制条目');
+  }
+
+  async function deleteItem(origIdx) {
+    if (!confirm('删除此条目？')) return;
+    const list = await loadSection(currentSection);
+    list.splice(origIdx, 1);
+    await saveSection(currentSection, list);
+    renderList();
+  }
+
+  /* ══ EDITOR ══════════════════════════════════════════ */
+  async function openEditor(origIdx) {
+    const list = await loadSection(currentSection);
+    const item = list[origIdx];
+    if (!item) return;
+    editingIndex = origIdx;
+
+    const s = SECTIONS[currentSection];
+    document.getElementById('editorPillDot').style.background = s.color;
+    document.getElementById('editorPillLabel').textContent    = s.label;
+
+    document.getElementById('editTitle').value    = item.title    || '';
+    document.getElementById('editPriority').value = item.priority != null ? item.priority : 100;
+    document.getElementById('editKeys').value     = item.keys     || '';
+    document.getElementById('editContent').value  = item.content  || '';
+    document.getElementById('editToggle').className = `toggle-dot ${item.enabled ? 'on' : ''}`;
+
+    /* Category picker */
+    const catSec = document.getElementById('editorCatSection');
+    catSec.classList.toggle('hidden', !s.hasCats);
+    if (s.hasCats) {
+      editingCategory = item.category || '';
+      await renderEditorCatPicker();
+    }
+
+    /* Char picker */
+    const charSec = document.getElementById('charPickerSection');
+    charSec.classList.toggle('hidden', !s.hasChars);
+    if (s.hasChars) {
+      editingCharIds = Array.isArray(item.charIds) ? [...item.charIds] : [];
+      await renderEditorCharPicker();
+    }
+
+    document.getElementById('editorPanel').classList.add('open');
+    setTimeout(() => document.getElementById('editTitle').focus(), 460);
+  }
+
+  function closeEditor() {
+    document.getElementById('editorPanel').classList.remove('open');
+    editingIndex = null;
+  }
+
+  async function saveEntry() {
+    if (editingIndex === null) return;
+    const list    = await loadSection(currentSection);
+    const item    = list[editingIndex];
+    const rawKeys = document.getElementById('editKeys').value.trim();
+
+    item.title     = document.getElementById('editTitle').value.trim();
+    item.priority  = parseInt(document.getElementById('editPriority').value) || 100;
+    item.keys      = rawKeys;
+    item.content   = document.getElementById('editContent').value.trim();
+    item.enabled   = document.getElementById('editToggle').classList.contains('on');
+    item.isKeyword = rawKeys.length > 0;
+    item.category  = SECTIONS[currentSection].hasCats  ? editingCategory : '';
+    item.charIds   = SECTIONS[currentSection].hasChars ? [...editingCharIds] : [];
+
+    await saveSection(currentSection, list);
+    await renderList();
+    closeEditor();
+    showToast('已保存 ✓');
+  }
+
+  /* ── Editor: Category Picker ──────────────────────── */
+  async function renderEditorCatPicker() {
+    const customCats = await loadCategories();
+    const allCats    = ['', ...DEFAULT_CATS, ...customCats];
+    const container  = document.getElementById('editorCatPicker');
+
+    container.innerHTML = allCats.map(cat => {
+      const isNone = cat === '';
+      const label  = isNone ? '无分类' : cat;
+      const color  = isNone ? '' : getCatColor(cat, customCats);
+      const sel    = cat === editingCategory;
+      let style = '';
+      if (sel) {
+        style = isNone
+          ? 'background:var(--ink);color:white;border-color:var(--ink)'
+          : `background:${color};color:white;border-color:${color}`;
+      } else if (!isNone) {
+        style = `border-color:${color}40;color:${color}`;
+      }
+      return `<div class="editor-cat-pill" style="${style}"
+                   onclick="selectEditCat('${esc(cat)}')">
+                ${!isNone ? `<span class="editor-cat-dot" style="background:${color}"></span>` : ''}
+                ${esc(label)}
+              </div>`;
+    }).join('');
+  }
+
+  function selectEditCat(cat) {
+    editingCategory = cat;
+    renderEditorCatPicker();
+  }
+
+  /* ── Editor: Char Picker ──────────────────────────── */
+  async function renderEditorCharPicker() {
+    const chars     = await loadChars();
+    const container = document.getElementById('charPickerList');
+
+    if (chars.length === 0) {
+      container.innerHTML = `
+        <div class="no-chars-hint">
+          暂无角色可绑定<br/>请先在角色设置中创建角色
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = chars.map(c => {
+      const sel = editingCharIds.includes(c.id);
+      return `<div class="char-chip ${sel?'selected':''}" onclick="toggleCharSelect('${esc(c.id)}')">
+        <img class="char-chip-avatar" src="${esc(c.avatar||'')}"
+             onerror="this.src='';this.style.background='var(--paper-2)'" />
+        ${c.name ? esc(c.name) : '<em style="opacity:.4">Unnamed</em>'}
+        <span class="char-check">✓</span>
+      </div>`;
+    }).join('');
+  }
+
+  async function toggleCharSelect(charId) {
+    const idx = editingCharIds.indexOf(charId);
+    if (idx >= 0) editingCharIds.splice(idx, 1);
+    else editingCharIds.push(charId);
+    await renderEditorCharPicker();
+  }
+
+  /* ── Boot ─────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => switchSection('pre'));
+</script>
+</body>
+</html>
